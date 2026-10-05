@@ -55,7 +55,7 @@ a { color: inherit; text-decoration: none; }
 .section-label .lowercase-i, .mission-kicker .lowercase-i { margin-left: -.08em; }
 h1, h2, h3 { font-family: var(--display); letter-spacing: -.035em; line-height: 1.1; margin-top: 0; }
 .hero h1 { font-size: clamp(3rem, 6.4vw, 6.1rem); max-width: 980px; margin-bottom: 30px; font-weight: 600; }
-.hero h1 em { font-style: normal; color: var(--brand-blue); background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.hero h1 em { font-style: normal; }
 .hero-lede { font-size: clamp(1.05rem, 1.7vw, 1.3rem); max-width: 700px; color: #c1cbe6; line-height: 1.55; }
 .hero-actions { display: flex; gap: 12px; margin-top: 40px; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; padding: 0 23px; border-radius: 6px; font-weight: 600; font-size: .95rem; }
