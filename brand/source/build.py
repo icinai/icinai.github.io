@@ -3,8 +3,8 @@
 
 Text is converted to outlines, so the SVGs do not depend on any installed font.
 Requires: numpy, fonttools, playwright (for PNG renders), Pillow (for favicon.ico).
-Font: Space Grotesk (SIL OFL), e.g. `npm pack @fontsource/space-grotesk`;
-pass the folder holding space-grotesk-latin-{400,600}-normal.woff as argv[1].
+Font: Manrope (SIL OFL), e.g. `npm pack @fontsource/manrope`;
+pass the folder holding manrope-latin-{500,800}-normal.woff as argv[1].
 """
 import os, sys, json
 import numpy as np
@@ -21,19 +21,13 @@ P1, P2, P3 = '#B875B1', '#838CC1', '#4EA3D1'          # NDIF brand gradient
 TAG_ON_DARK, TAG_ON_LIGHT = '#94A3B8', '#475569'
 
 # ---------------------------------------------------------------- geometry
-# Units: font size 100, baseline y=100, letter-spacing -3.
-# The i is shortened by ~35% (stem from y 68 instead of the x-height, 51) so it reads as a small
-# figure beside the A; the head drops with it.
-DROP = 17.2
-STEM = f'M237.2 100 V{56.4 + DROP:.1f} A5.4 5.4 0 0 1 248 {56.4 + DROP:.1f} V100 Z'
-HEAD = (242.6, 35.0 + DROP, 9.0, 2.4, 4.6)            # cx, cy, ring r, ring stroke, core r
-GAZE = (-2.4, 1.4)        # the core (pupil) looks left and down, at the A
-# App icon: the same figure with no orbit and a body about 35% shorter, centred in the tile.
-ICON_STEM = 'M237.2 82 V56.4 A5.4 5.4 0 0 1 248 56.4 V82 Z'
-ICON_HEAD = (242.6, 35.0, 9.0, 2.6, 4.6)
-FAV_STEM = 'M236.1 82 V57.6 A6.5 6.5 0 0 1 249.1 57.6 V82 Z'   # heavier strokes for 16-32 px
-FAV_HEAD = (242.6, 34.5, 9.6, 4.0, 4.9)
+# Units: font size 100, baseline y=100. All geometry is derived from the font's metrics, so the
+# wordmark can be rebuilt in another typeface by changing WORD_FONT.
+from fontTools.pens.boundsPen import BoundsPen
 
+WORD_FONT = os.path.join(FONT_DIR, 'manrope-latin-800-normal.woff')   # wordmark: Manrope ExtraBold
+TAG_FONT = os.path.join(FONT_DIR, 'manrope-latin-500-normal.woff')    # tagline: Manrope Medium
+SPACING = -3
 
 def comet(cx, cy, rx, ry, xs, R, c1, c2, D, w0, wpk, wend, n=110, m=34):
     """Tapered orbit: elliptical arc from above the A, counterclockwise round the
@@ -59,9 +53,6 @@ def comet(cx, cy, rx, ry, xs, R, c1, c2, D, w0, wpk, wend, n=110, m=34):
     return 'M' + ' '.join(f'{x:.1f} {y:.1f}' for x, y in pts) + 'Z'
 
 
-ORBIT = comet(127, 66, 166, 72, 196, (293, 66), (293, 48), (268, 26 + DROP), (242.6, 26 + DROP), 0.5, 7.5, 2.4)
-
-
 def text_path(fontfile, text, size, x0, baseline, spacing):
     f = TTFont(fontfile)
     upem = f['head'].unitsPerEm
@@ -77,13 +68,66 @@ def text_path(fontfile, text, size, x0, baseline, spacing):
     return ' '.join(d), x - spacing - x0
 
 
-W600 = os.path.join(FONT_DIR, 'space-grotesk-latin-600-normal.woff')
-W400 = os.path.join(FONT_DIR, 'space-grotesk-latin-400-normal.woff')
-WORD, _ = text_path(W600, 'ICINA', 100, 0, 100, -3)
+
+def _metrics(fontfile, text, spacing):
+    f = TTFont(fontfile)
+    sc = 100 / f['head'].unitsPerEm
+    gs, cmap, hmtx = f.getGlyphSet(), f.getBestCmap(), f['hmtx']
+    x, inks = 0, []
+    for ch in text:
+        g = cmap[ord(ch)]
+        bp = BoundsPen(gs)
+        gs[g].draw(bp)
+        inks.append((x + bp.bounds[0] * sc, x + bp.bounds[2] * sc))
+        x += hmtx[g][0] * sc + spacing
+    bp = BoundsPen(gs)
+    gs[cmap[ord('I')]].draw(bp)
+    stem_w = (bp.bounds[2] - bp.bounds[0]) * sc
+    return inks, stem_w, f['OS/2'].sxHeight * sc
+
+
+WORD, _ = text_path(WORD_FONT, 'ICINA', 100, 0, 100, SPACING)
+_INKS, SW, XH = _metrics(WORD_FONT, 'ICINA', SPACING)
+WORD_L, (A_L, A_R) = _INKS[0][0], _INKS[4]
+
+# The i: a stem the weight of the I, ~35% shorter than a normal i so it reads as a small figure
+# beside the A, topped by an eye (ring + pupil) that looks down and to the left at the A.
+U = SW / 10.8                          # scale relative to the original design
+SX0 = A_R + 5
+SX1 = SX0 + SW
+HX = (SX0 + SX1) / 2
+STEM_TOP = 100 - 0.65 * XH
+STEM = f'M{SX0:.1f} 100 V{STEM_TOP + SW / 2:.1f} A{SW / 2:.1f} {SW / 2:.1f} 0 0 1 {SX1:.1f} {STEM_TOP + SW / 2:.1f} V100 Z'
+HY = STEM_TOP - 16 * U
+HEAD = (round(HX, 2), round(HY, 2), 0.83 * SW, 0.22 * SW, 0.43 * SW)   # cx, cy, ring r, ring stroke, core r
+GAZE = (-2.4 * U, 1.4 * U)
+
+# Orbit: from above the A, counterclockwise round the word, curling into the top of the eye.
+OCX = (WORD_L + SX1) / 2
+ORX = (SX1 - WORD_L) / 2 + 45.5
+_TOP = HY - HEAD[2]
+ORBIT = comet(OCX, 66, ORX, 72, (A_L + A_R) / 2 - 5, (OCX + ORX, 66), (OCX + ORX, 48),
+              (HX + 25.4, _TOP), (HX, _TOP), 0.5, 7.5, HEAD[3])
+GRAD_X = (OCX - ORX, OCX + ORX)        # brand gradient spans the orbit
+FADE_X = (0, SX0)                      # letters fade into the gradient toward the i
+
+LOGO_VB = (round(OCX - ORX - 14), -12, round(2 * ORX + 28), 158)
+LOCKUP_VB = (LOGO_VB[0], -12, LOGO_VB[2], 196)
+
 TAGLINE = 'International Consortium for Interpretable AI'
 TAG_SIZE = 12.5
-_, tw = text_path(W400, TAGLINE, TAG_SIZE, 0, 0, TAG_SIZE * 0.06)
-TAG, _ = text_path(W400, TAGLINE, TAG_SIZE, 127.5 - tw / 2, 170, TAG_SIZE * 0.06)
+_, tw = text_path(TAG_FONT, TAGLINE, TAG_SIZE, 0, 0, TAG_SIZE * 0.04)
+TAG, _ = text_path(TAG_FONT, TAGLINE, TAG_SIZE, (WORD_L + SX1) / 2 - tw / 2, 170, TAG_SIZE * 0.04)
+
+# App icon: the i from the logo (eye and short body) with no orbit, centred in the tile.
+_IB = 100                              # same proportions as the i in the logo
+ICON_STEM = f'M{SX0:.1f} {_IB:.1f} V{STEM_TOP + SW / 2:.1f} A{SW / 2:.1f} {SW / 2:.1f} 0 0 1 {SX1:.1f} {STEM_TOP + SW / 2:.1f} V{_IB:.1f} Z'
+ICON_HEAD = (HEAD[0], HEAD[1], HEAD[2], 0.24 * SW, HEAD[4])
+_FW = SW * 1.2
+FAV_STEM = f'M{HX - _FW / 2:.1f} {_IB:.1f} V{STEM_TOP + _FW / 2 + 1:.1f} A{_FW / 2:.1f} {_FW / 2:.1f} 0 0 1 {HX + _FW / 2:.1f} {STEM_TOP + _FW / 2 + 1:.1f} V{_IB:.1f} Z'
+FAV_HEAD = (HEAD[0], HEAD[1] - 0.5, HEAD[2] * 1.07, 0.37 * SW, HEAD[4] * 1.06)
+ICON_CY = ((HY - HEAD[2]) + _IB) / 2   # vertical centre of the figure
+ICON_H = _IB - (HY - HEAD[2])
 
 
 # ---------------------------------------------------------------- svg helpers
@@ -107,18 +151,16 @@ def svg(viewbox, body, title):
             f'<title>{title}</title>{body}</svg>\n')
 
 
-LOGO_VB = (-46, -12, 346, 156)
-LOCKUP_VB = (-46, -12, 346, 194)
 
 # variant -> (letters fill, mark fill, tagline fill, defs)
 VARIANTS = {
     'color-on-dark': ('url(#fade)', 'url(#brand)', TAG_ON_DARK,
-                      grad('brand', -40, 295, BRAND) +
-                      grad('fade', 0, 240, [(0, WHITE), (0.45, WHITE), (0.85, P1), (1, P2)])),
+                      grad('brand', *GRAD_X, BRAND) +
+                      grad('fade', *FADE_X, [(0, WHITE), (0.45, WHITE), (0.85, P1), (1, P2)])),
     'color-on-light': ('url(#fade)', 'url(#brand)', TAG_ON_LIGHT,
-                       grad('brand', -40, 295, BRAND) +
-                       grad('fade', 0, 240, [(0, NAVY), (0.45, NAVY), (0.85, '#9A5C95'), (1, '#6E78B0')])),
-    'gradient': ('url(#brand)', 'url(#brand)', P2, grad('brand', -40, 295, BRAND)),
+                       grad('brand', *GRAD_X, BRAND) +
+                       grad('fade', *FADE_X, [(0, NAVY), (0.45, NAVY), (0.85, '#9A5C95'), (1, '#6E78B0')])),
+    'gradient': ('url(#brand)', 'url(#brand)', P2, grad('brand', *GRAD_X, BRAND)),
     'black': (BLACK, BLACK, BLACK, ''),
     'white': (WHITE, WHITE, WHITE, ''),
 }
@@ -142,11 +184,10 @@ def logo(variant, tagline=False):
 
 
 def figure(fill, small=False):
-    # figure spans y 25..82 in logo units; centre it at (50, 50) of the 100-unit tile
-    s = 1.42 if small else 1.3
+    s = (68 if small else 62) / ICON_H
     stem, hd = (FAV_STEM, FAV_HEAD) if small else (ICON_STEM, ICON_HEAD)
-    return (f'<g transform="translate(50 50) scale({s}) translate(-242.6 -53.5)">'
-            f'<path d="{stem}" fill="{fill}"/>{head(hd, fill)}</g>')
+    return (f'<g transform="translate(50 50) scale({s:.4f}) translate({-HX:.2f} {-ICON_CY:.2f})">'
+            f'<path d="{stem}" fill="{fill}"/>{head(hd, fill, (GAZE[0], GAZE[1]))}</g>')
 
 
 def app_icon(tile, fig, defs=''):

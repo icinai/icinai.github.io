@@ -55,14 +55,14 @@ Shared with [NDIF](https://ndif.us).
 
 ## Type
 
-[Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk) (SIL Open Font License): SemiBold 600 for the wordmark, Regular 400 for the tagline. All text in the SVGs is converted to outlines, so no font needs to be installed.
+[Manrope](https://fonts.google.com/specimen/Manrope) (SIL Open Font License): ExtraBold 800 for the wordmark, Medium 500 for the tagline. The website uses Manrope for headings and DM Sans for body text. All text in the SVGs is converted to outlines, so no font needs to be installed.
 
 ## Rebuilding
 
 `source/build.py` generates every file from the geometry and palette defined at the top of the script.
 
 ```sh
-npm pack @fontsource/space-grotesk && tar xzf fontsource-space-grotesk-*.tgz
+npm pack @fontsource/manrope && tar xzf fontsource-manrope-*.tgz
 pip install numpy fonttools pillow playwright
 python3 source/build.py package/files
 ```
