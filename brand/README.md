@@ -4,7 +4,7 @@ Logo, icons and favicons for the International Consortium for Interpretable AI (
 
 ![All logo variants](preview.png)
 
-The wordmark reads "AI" first. The final "i" is also a person: the ringed dot is the head, and an orbit sweeps from above the A round the whole word and closes into it.
+The wordmark reads "AI" first. The final "i" is also a person: shorter than the capitals, standing beside the A, with its dot drawn as an eye looking down and to the left at it. A comet orbit sweeps from above the A round the whole word and closes into the ring of that eye.
 
 ## Logo
 
@@ -18,17 +18,18 @@ The wordmark reads "AI" first. The final "i" is also a person: the ringed dot is
 
 Each has a `lockup` version with the full name set below (`logo/icinai-lockup-*.svg`). PNG renders at 1200 and 600 px wide are in `png/`.
 
-Keep clear space around the logo equal to the height of the ringed dot. Don't recolor, stretch or rearrange the parts. Below about 120 px wide, use the app icon instead.
+Keep clear space around the logo equal to the height of the eye. Don't recolor, stretch or rearrange the parts. Below about 120 px wide, use the app icon instead.
 
 ## Icons
 
 | File | Use |
 |---|---|
-| `icon/icinai-app-icon.svg` | App and social avatar: gradient tile, white figure. |
+| `icon/icinai-app-icon.svg` | App and social avatar: gradient tile, white figure (the i with its eye, body shortened, no orbit). |
 | `icon/icinai-app-icon-navy.svg`, `-black.svg`, `-white.svg` | Tile alternatives. |
 | `icon/icinai-mark-gradient.svg`, `-black.svg`, `-white.svg` | The figure alone, no tile. |
-| `icon/favicon.svg`, `icon/favicon.ico` | Browser favicon (simplified: no orbit at 16 px). |
+| `icon/favicon.svg`, `icon/favicon.ico` | Browser favicon (heavier strokes for 16 and 32 px). |
 | `png/apple-touch-icon.png` | 180 px iOS home-screen icon. |
+| `png/icinai-social-card.png` | 1200 × 630 link-preview image (Open Graph / Twitter). |
 
 Favicon markup:
 

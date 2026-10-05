@@ -22,10 +22,17 @@ TAG_ON_DARK, TAG_ON_LIGHT = '#94A3B8', '#475569'
 
 # ---------------------------------------------------------------- geometry
 # Units: font size 100, baseline y=100, letter-spacing -3.
-STEM = 'M237.2 100 V56.4 A5.4 5.4 0 0 1 248 56.4 V100 Z'
-HEAD = (242.6, 35.0, 9.0, 2.4, 4.6)                   # cx, cy, ring r, ring stroke, core r
-ICON_STEM = 'M44.6 80 V55.4 A5.4 5.4 0 0 1 55.4 55.4 V80 Z'
-ICON_HEAD = (50, 34, 9.5, 2.6, 4.8)
+# The i is shortened by ~35% (stem from y 68 instead of the x-height, 51) so it reads as a small
+# figure beside the A; the head drops with it.
+DROP = 17.2
+STEM = f'M237.2 100 V{56.4 + DROP:.1f} A5.4 5.4 0 0 1 248 {56.4 + DROP:.1f} V100 Z'
+HEAD = (242.6, 35.0 + DROP, 9.0, 2.4, 4.6)            # cx, cy, ring r, ring stroke, core r
+GAZE = (-2.4, 1.4)        # the core (pupil) looks left and down, at the A
+# App icon: the same figure with no orbit and a body about 35% shorter, centred in the tile.
+ICON_STEM = 'M237.2 82 V56.4 A5.4 5.4 0 0 1 248 56.4 V82 Z'
+ICON_HEAD = (242.6, 35.0, 9.0, 2.6, 4.6)
+FAV_STEM = 'M236.1 82 V57.6 A6.5 6.5 0 0 1 249.1 57.6 V82 Z'   # heavier strokes for 16-32 px
+FAV_HEAD = (242.6, 34.5, 9.6, 4.0, 4.9)
 
 
 def comet(cx, cy, rx, ry, xs, R, c1, c2, D, w0, wpk, wend, n=110, m=34):
@@ -52,8 +59,7 @@ def comet(cx, cy, rx, ry, xs, R, c1, c2, D, w0, wpk, wend, n=110, m=34):
     return 'M' + ' '.join(f'{x:.1f} {y:.1f}' for x, y in pts) + 'Z'
 
 
-ORBIT = comet(127, 66, 166, 72, 196, (293, 66), (293, 38), (268, 26), (242.6, 26), 0.5, 7.5, 2.4)
-ICON_ORBIT = comet(50, 60, 36, 30, 26, (86, 60), (86, 36), (66, 24.5), (50, 24.5), 0.6, 6, 2.6)
+ORBIT = comet(127, 66, 166, 72, 196, (293, 66), (293, 48), (268, 26 + DROP), (242.6, 26 + DROP), 0.5, 7.5, 2.4)
 
 
 def text_path(fontfile, text, size, x0, baseline, spacing):
@@ -89,10 +95,10 @@ def grad(id_, x1, x2, stops, y1=0, y2=0):
 BRAND = [(0, P1), (0.5, P2), (1, P3)]
 
 
-def head(h, fill):
+def head(h, fill, gaze=GAZE):
     cx, cy, r, sw, core = h
     return (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{fill}" stroke-width="{sw}"/>'
-            f'<circle cx="{cx}" cy="{cy}" r="{core}" fill="{fill}"/>')
+            f'<circle cx="{cx + gaze[0]}" cy="{cy + gaze[1]}" r="{core}" fill="{fill}"/>')
 
 
 def svg(viewbox, body, title):
@@ -135,9 +141,12 @@ def logo(variant, tagline=False):
                'ICINAi: International Consortium for Interpretable AI' if tagline else 'ICINAi')
 
 
-def figure(fill, shift=-7):
-    return (f'<g transform="translate(0 {shift})"><path d="{ICON_ORBIT}" fill="{fill}"/>'
-            f'<path d="{ICON_STEM}" fill="{fill}"/>{head(ICON_HEAD, fill)}</g>')
+def figure(fill, small=False):
+    # figure spans y 25..82 in logo units; centre it at (50, 50) of the 100-unit tile
+    s = 1.42 if small else 1.3
+    stem, hd = (FAV_STEM, FAV_HEAD) if small else (ICON_STEM, ICON_HEAD)
+    return (f'<g transform="translate(50 50) scale({s}) translate(-242.6 -53.5)">'
+            f'<path d="{stem}" fill="{fill}"/>{head(hd, fill)}</g>')
 
 
 def app_icon(tile, fig, defs=''):
@@ -148,20 +157,17 @@ def app_icon(tile, fig, defs=''):
 
 def mark(fill, defs=''):
     body = (f'<defs>{defs}</defs>' if defs else '') + figure(fill)
-    return svg((8, 8, 84, 84), body, 'ICINAi')
+    return svg((15, 15, 70, 70), body, 'ICINAi')
 
 
 def favicon(tile, fig, defs=''):
     body = ((f'<defs>{defs}</defs>' if defs else '') +
-            f'<rect width="100" height="100" rx="24" fill="{tile}"/>'
-            f'<path d="M41 86 V58 A9 9 0 0 1 59 58 V86 Z" fill="{fig}"/>'
-            f'<circle cx="50" cy="30" r="13" fill="none" stroke="{fig}" stroke-width="6"/>'
-            f'<circle cx="50" cy="30" r="5" fill="{fig}"/>')
+            f'<rect width="100" height="100" rx="24" fill="{tile}"/>' + figure(fig, small=True))
     return svg((0, 0, 100, 100), body, 'ICINAi')
 
 
 TILE_GRAD = grad('icinai-tile', 0, 100, BRAND, 0, 100)
-MARK_GRAD = grad('icinai-mark', 14, 86, BRAND)
+MARK_GRAD = grad('icinai-mark', 30, 70, BRAND, 15, 85)
 
 FILES = {}
 for v in VARIANTS:
